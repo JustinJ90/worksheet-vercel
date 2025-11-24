@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOON Weekly Test Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --yoon-red: #D6001C;
+            --yoon-black: #222222;
+            --yoon-gray: #F4F4F4;
+            --footer-bg: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--yoon-gray);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .main-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 850px;
+            margin: 40px auto;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            padding: 40px;
+            border-top: 6px solid var(--yoon-red);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .brand-title {
+            color: var(--yoon-red);
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+        .brand-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        /* 학생 정보 입력 섹션 */
+        .info-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .input-group {
+            flex: 1;
+            max-width: 200px;
+        }
+        .input-label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--yoon-black);
+            margin-bottom: 5px;
+            display: block;
+            text-align: center; /* [요청반영] 라벨 가운데 정렬 */
+        }
+        .text-input {
+            width: 100%;
+            padding: 10px 15px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            box-sizing: border-box;
+            transition: border 0.2s;
+            text-align: center; /* 입력 텍스트도 가운데 정렬하면 더 예쁩니다 */
+        }
+        .text-input:focus {
+            border-color: var(--yoon-red);
+            box-shadow: 0 0 0 2px rgba(214, 0, 28, 0.1);
+        }
+
+        /* 교재 선택 섹션 */
+        .book-section {
+            background-color: #FFF5F5;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 30px;
+            border: 1px solid #FFD1D1;
+        }
+        
+        .book-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--yoon-black);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        select {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 15px;
+            font-size: 1rem;
+            border: 2px solid var(--yoon-red);
+            border-radius: 8px;
+            outline: none;
+            background: white;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .pattern-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+            margin-bottom: 30px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+        .pattern-list::-webkit-scrollbar { width: 8px; }
+        .pattern-list::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 4px; }
+
+        .pattern-item {
+            background: white;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .pattern-item:hover {
+            border-color: var(--yoon-red);
+            background-color: #FFF9F9;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        }
+        .pattern-item.selected {
+            background-color: #FFEEEE;
+            border-color: var(--yoon-red);
+            box-shadow: 0 0 0 1px var(--yoon-red);
+        }
+        .pattern-badge {
+            background-color: var(--yoon-red);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .pattern-text {
+            font-size: 0.95rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .bottom-area {
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .count-info {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+        .count-num {
+            color: var(--yoon-red);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .generate-btn {
+            background-color: var(--yoon-red);
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 15px rgba(214, 0, 28, 0.3);
+            width: 100%;
+            max-width: 300px;
+        }
+        .generate-btn:hover:not(:disabled) {
+            background-color: #b00017;
+            transform: translateY(-2px);
+        }
+        .generate-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .footer {
+            background-color: var(--footer-bg);
+            color: #888;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            margin-top: auto;
+        }
+        .footer-copy {
+            font-family: 'Arial', sans-serif;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <div class="card">
+            <div class="header">
+                <h1 class="brand-title">Yoon's Weekly Pattern UP!</h1>
+                <div class="brand-subtitle">워크시트 자동 생성기</div>
+            </div>
+
+            <div class="info-section">
+                <div class="input-group">
+                    <label class="input-label">이름 (Name)</label>
+                    <input type="text" id="studentName" class="text-input" placeholder="이름 입력">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">날짜 (Date)</label>
+                    <input type="text" id="studentDate" class="text-input" placeholder="예: 11/25">
+                </div>
+            </div>
+
+            <div class="book-section">
+                <label class="book-label">📚 교재를 선택해주세요</label>
+                <select id="bookSelect" onchange="loadPatterns()">
+                    <option value="" disabled selected>목록에서 교재 선택</option>
+                    {% if books %}
+                        {% for book in books %}
+                        <option value="{{ book }}">{{ book.replace('.xlsx', '') }}</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="" disabled>등록된 교재가 없습니다 (databases 폴더 확인)</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <div id="loadingMsg" style="text-align:center; display:none; color:#888; margin: 20px;">
+                패턴 데이터를 불러오는 중입니다...
+            </div>
+
+            <div class="pattern-list" id="patternList">
+                <div style="text-align:center; padding:40px; color:#999; grid-column: 1/-1;">
+                    위에서 교재를 선택하면 패턴 목록이 나타납니다.
+                </div>
+            </div>
+
+            <div class="bottom-area">
+                <div class="count-info">
+                    선택된 패턴: <span id="selectedCount" class="count-num">0</span> / 5
+                </div>
+                <button onclick="generatePDF()" class="generate-btn" id="genBtn" disabled>
+                    워크시트 생성 및 미리보기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-copy">
+            Copyright © YOON ENGLISH SCHOOL. All Rights Reserved.
+        </div>
+    </footer>
+
+    <script>
+        let selectedPatterns = new Set();
+        let currentBook = "";
+
+        async function loadPatterns() {
+            const bookSelect = document.getElementById('bookSelect');
+            const filename = bookSelect.value;
+            const listDiv = document.getElementById('patternList');
+            const loadingMsg = document.getElementById('loadingMsg');
+            
+            if (!filename) return;
+
+            currentBook = filename;
+            selectedPatterns.clear();
+            updateUI();
+            
+            listDiv.innerHTML = '';
+            loadingMsg.style.display = 'block';
+
+            try {
+                const res = await fetch(`/get_patterns/${filename}`);
+                const data = await res.json();
+                
+                loadingMsg.style.display = 'none';
+                
+                if (data.success) {
+                    if (data.patterns.length === 0) {
+                        listDiv.innerHTML = '<div style="text-align:center; padding:20px; grid-column:1/-1;">이 교재에는 패턴 데이터가 없습니다.</div>';
+                        return;
+                    }
+
+                    data.patterns.forEach(p => {
+                        const div = document.createElement('div');
+                        div.className = 'pattern-item';
+                        div.onclick = () => togglePattern(div, p.number);
+                        
+                        div.innerHTML = `
+                            <span class="pattern-badge">P.${p.number}</span>
+                            <span class="pattern-text">${p.name}</span>
+                            <input type="checkbox" style="display:none;"> 
+                        `;
+                        listDiv.appendChild(div);
+                    });
+                } else {
+                    listDiv.innerHTML = `<div style="color:red; text-align:center;">오류 발생: ${data.error}</div>`;
+                }
+            } catch (e) {
+                loadingMsg.style.display = 'none';
+                listDiv.innerHTML = '<div style="color:red; text-align:center;">서버 통신 오류가 발생했습니다.</div>';
+            }
+        }
+
+        function togglePattern(element, num) {
+            const strNum = String(num);
+            const checkbox = element.querySelector('input');
+
+            if (selectedPatterns.has(strNum)) {
+                selectedPatterns.delete(strNum);
+                element.classList.remove('selected');
+                if(checkbox) checkbox.checked = false;
+            } else {
+                if (selectedPatterns.size >= 5) {
+                    alert('패턴은 최대 5개까지만 선택할 수 있습니다.');
+                    return;
+                }
+                selectedPatterns.add(strNum);
+                element.classList.add('selected');
+                if(checkbox) checkbox.checked = true;
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            const count = selectedPatterns.size;
+            document.getElementById('selectedCount').innerText = count;
+            const btn = document.getElementById('genBtn');
+            
+            if (count > 0) {
+                btn.disabled = false;
+                btn.innerText = "워크시트 생성 및 미리보기";
+            } else {
+                btn.disabled = true;
+                btn.innerText = "패턴을 선택해주세요";
+            }
+        }
+
+        async function generatePDF() {
+            const btn = document.getElementById('genBtn');
+            
+            // [수정됨] 학년 대신 날짜 값 가져오기
+            const studentName = document.getElementById('studentName').value;
+            const studentDate = document.getElementById('studentDate').value;
+
+            btn.disabled = true;
+            btn.innerText = '생성 중... ⏳';
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        book: currentBook,
+                        patterns: Array.from(selectedPatterns),
+                        name: studentName,
+                        date: studentDate // [수정됨] date 전송
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    btn.innerText = '생성 완료! (새 탭 확인) ✅';
+                } else {
+                    const err = await response.json();
+                    alert('오류: ' + err.error);
+                    btn.innerText = '워크시트 생성 및 미리보기';
+                }
+            } catch (e) {
+                alert('서버 오류가 발생했습니다.');
+                btn.innerText = '워크시트 생성 및 미리보기';
+            } finally {
+                setTimeout(() => {
+                    if(selectedPatterns.size > 0) {
+                        btn.disabled = false;
+                        btn.innerText = '워크시트 생성 및 미리보기';
+                    }
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
