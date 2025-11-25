@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Vercel Final Fix (Encoding Solved)
-- Added urllib.parse.unquote to handle URL encoded filenames (space -> %20)
-- Fixes "File not found" error on Vercel
+Pattern Worksheet Generator - Vercel Final Fix (Font Corrected)
+- Changed Speaking I font style to support Korean characters
+- Solves "Black Square" issue when Korean is used in Speaking I
 """
 
 try:
@@ -21,7 +21,7 @@ try:
     import random
     from datetime import datetime
     from io import BytesIO
-    from urllib.parse import unquote  # <--- [핵심] 이 줄이 추가되었습니다!
+    from urllib.parse import unquote
 except ImportError as e:
     print(f"CRITICAL ERROR: {e}")
     raise e
@@ -50,13 +50,10 @@ def setup_korean_font():
 KOREAN_FONT = setup_korean_font()
 
 def load_patterns_from_excel(filename):
-    # [핵심 수정] 파일명에 섞인 %20 같은 코드를 다시 한글/띄어쓰기로 변환
     decoded_filename = unquote(filename)
-    
     file_path = os.path.join(DB_FOLDER, decoded_filename)
     if not os.path.exists(file_path):
-        # 에러 메시지에 경로까지 보여주어 디버깅 도움
-        raise FileNotFoundError(f"DB 파일을 찾을 수 없습니다: {decoded_filename} (경로: {file_path})")
+        raise FileNotFoundError(f"DB 파일을 찾을 수 없습니다: {decoded_filename}")
 
     wb = openpyxl.load_workbook(file_path, data_only=True)
     
@@ -158,24 +155,29 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     story.append(name_date_table)
     story.append(Spacer(1, 4*mm))
     
+    # Speaking I [수정됨: item_style -> item_kr_style]
     story.append(Paragraph("<b>◈ Speaking I - Answer the questions</b>", section_style))
     story.append(Spacer(1, 2*mm))
     for idx, question in enumerate(pattern_data['speaking1'][:5], 1):
-        story.append(Paragraph(f"{idx}. {question}", item_style))
+        # 여기가 핵심 수정입니다! 한글 폰트 스타일을 적용합니다.
+        story.append(Paragraph(f"{idx}. {question}", item_kr_style))
     story.append(Spacer(1, 4*mm))
     
+    # Speaking II
     story.append(Paragraph("<b>◈ Speaking II - Say in English</b>", section_style))
     story.append(Spacer(1, 2*mm))
     for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 1):
         story.append(Paragraph(f"{idx}. {korean}", item_kr_style))
     story.append(Spacer(1, 4*mm))
     
+    # Speaking III
     story.append(Paragraph("<b>◈ Speaking III - With your teacher</b>", section_style))
     story.append(Spacer(1, 2*mm))
     for idx in range(1, 6):
         story.append(Paragraph(f"{idx}. Pattern {idx}", item_style))
     story.append(Spacer(1, 4*mm))
     
+    # Unscramble
     story.append(Paragraph("<b>◈ Unscramble</b>", section_style))
     story.append(Spacer(1, 2*mm))
     for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 1):
@@ -231,7 +233,6 @@ def index():
 @app.route('/get_patterns/<filename>')
 def get_patterns(filename):
     try:
-        # 여기에서도 unquote를 사용하여 안전하게 처리
         decoded_filename = unquote(filename)
         patterns = load_patterns_from_excel(decoded_filename)
         pattern_list = []
@@ -257,7 +258,6 @@ def generate():
         if not book_filename or not selected_nums:
             return jsonify({'error': 'Book or Patterns missing'}), 400
             
-        # JSON 데이터는 인코딩 문제가 없으므로 그대로 사용
         all_patterns = load_patterns_from_excel(book_filename)
         selected_data = []
         for num in selected_nums:
