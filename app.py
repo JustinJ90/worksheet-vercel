@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Vercel Final Fix
+Pattern Worksheet Generator - Vercel Final Fix (Corrected)
+- Fixed SyntaxError caused by truncated line
 - Removed 'outputs' folder creation (Fixes Read-only file system error)
 - Fully in-memory processing
 """
@@ -135,4 +136,153 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     section_style = ParagraphStyle('Section', fontSize=11, fontName='Helvetica-Bold', spaceBefore=0, spaceAfter=0)
     item_style = ParagraphStyle('Item', fontSize=10, fontName='Helvetica', leftIndent=0, spaceBefore=2, spaceAfter=2)
     item_kr_style = ParagraphStyle('ItemKr', fontSize=10, fontName=KOREAN_FONT, leftIndent=0, spaceBefore=2, spaceAfter=2)
-    line_style = ParagraphStyle('Line', fontSize=10, font
+    line_style = ParagraphStyle('Line', fontSize=10, fontName='Helvetica', spaceAfter=0)
+    
+    # === PAGE 1 ===
+    story.append(Paragraph("<b>Weekly Test</b>", title_style))
+    story.append(Paragraph(f"<b>{clean_book_title} - Patterns: {p_nums}</b>", title_style))
+    
+    display_name = f"NAME: {student_name}" if student_name else "NAME: _______________________________"
+    display_date = f"DATE: {student_date}" if student_date else "DATE: _____ / _____"
+    
+    name_date_data = [[
+        Paragraph(display_name, ParagraphStyle('Name', fontSize=12, fontName=KOREAN_FONT)), 
+        Paragraph(display_date, ParagraphStyle('Date', fontSize=12, fontName=KOREAN_FONT, alignment=TA_RIGHT))
+    ]]
+    name_date_table = Table(name_date_data, colWidths=[120*mm, 50*mm])
+    name_date_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+    ]))
+    story.append(name_date_table)
+    story.append(Spacer(1, 4*mm))
+    
+    # Speaking I
+    story.append(Paragraph("<b>◈ Speaking I - Answer the questions</b>", section_style))
+    story.append(Spacer(1, 2*mm))
+    for idx, question in enumerate(pattern_data['speaking1'][:5], 1):
+        story.append(Paragraph(f"{idx}. {question}", item_style))
+    story.append(Spacer(1, 4*mm))
+    
+    # Speaking II
+    story.append(Paragraph("<b>◈ Speaking II - Say in English</b>", section_style))
+    story.append(Spacer(1, 2*mm))
+    for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 1):
+        story.append(Paragraph(f"{idx}. {korean}", item_kr_style))
+    story.append(Spacer(1, 4*mm))
+    
+    # Speaking III
+    story.append(Paragraph("<b>◈ Speaking III - With your teacher</b>", section_style))
+    story.append(Spacer(1, 2*mm))
+    for idx in range(1, 6):
+        story.append(Paragraph(f"{idx}. Pattern {idx}", item_style))
+    story.append(Spacer(1, 4*mm))
+    
+    # Unscramble
+    story.append(Paragraph("<b>◈ Unscramble</b>", section_style))
+    story.append(Spacer(1, 2*mm))
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 1):
+        story.append(Paragraph(f"{idx}. {korean} ({words})", item_kr_style))
+        story.append(Spacer(1, 7*mm)) 
+        story.append(Paragraph("_" * 85, line_style))
+        story.append(Spacer(1, 3*mm))
+    
+    story.append(Spacer(1, 5*mm))
+    footer_data = [[
+        Paragraph("<b>GRADE:</b>", ParagraphStyle('Footer', fontSize=12, fontName='Helvetica-Bold')),
+        "",
+        Paragraph("<b>REMARK:</b>", ParagraphStyle('Footer', fontSize=12, fontName='Helvetica-Bold'))
+    ]]
+    footer_table = Table(footer_data, colWidths=[40*mm, 40*mm, 90*mm])
+    footer_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (2, 0), (2, 0), 'LEFT'),
+    ]))
+    story.append(footer_table)
+    
+    # === PAGE 2 ===
+    story.append(PageBreak())
+    story.append(Paragraph("<b>Teacher's Guide (Answer Key)</b>", title_style))
+    story.append(Paragraph(f"<b>{clean_book_title} - Patterns: {p_nums}</b>", title_style))
+    story.append(Spacer(1, 10*mm))
+    
+    story.append(Paragraph("<b>◈ Speaking II Answers</b>", section_style))
+    story.append(Spacer(1, 3*mm))
+    for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 1):
+        story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
+    story.append(Spacer(1, 10*mm))
+    
+    story.append(Paragraph("<b>◈ Unscramble Answers</b>", section_style))
+    story.append(Spacer(1, 3*mm))
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 1):
+        story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+@app.route('/')
+def index():
+    try:
+        # glob으로 엑셀 파일 찾기
+        files = glob.glob(os.path.join(DB_FOLDER, "*.xlsx"))
+        books = sorted([os.path.basename(f) for f in files])
+        return render_template('index.html', books=books)
+    except Exception as e:
+        return f"<h3>Error: {str(e)}</h3><p>Check logs for details.</p>"
+
+@app.route('/get_patterns/<filename>')
+def get_patterns(filename):
+    try:
+        patterns = load_patterns_from_excel(filename)
+        pattern_list = []
+        for p_num in sorted(patterns.keys()):
+            pattern_list.append({
+                'number': p_num,
+                'name': patterns[p_num]['pattern_name'],
+                'unit': patterns[p_num]['unit']
+            })
+        return jsonify({'success': True, 'patterns': pattern_list})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    try:
+        data = request.json
+        book_filename = data.get('book')
+        selected_nums = data.get('patterns', [])
+        student_name = data.get('name', '')
+        student_date = data.get('date', '')
+        
+        if not book_filename or not selected_nums:
+            return jsonify({'error': 'Book or Patterns missing'}), 400
+            
+        all_patterns = load_patterns_from_excel(book_filename)
+        selected_data = []
+        for num in selected_nums:
+            if int(num) in all_patterns:
+                selected_data.append(all_patterns[int(num)])
+                
+        final_questions = distribute_questions(selected_data)
+        
+        pdf_buffer = create_worksheet_in_memory(
+            final_questions, selected_data, book_title=book_filename, 
+            student_name=student_name, student_date=student_date
+        )
+        
+        filename = f"Worksheet_{datetime.now().strftime('%m%d_%H%M%S')}.pdf"
+        
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
