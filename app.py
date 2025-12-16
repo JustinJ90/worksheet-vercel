@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Final "Tight" Version
-1. Margins: Reverted to 5mm (Top/Bottom) as requested.
-2. Layout: Maximized content space while keeping internal gaps for readability.
-3. Evaluation: Uses (A)(B)(C) text for 100% font safety.
+Pattern Worksheet Generator - Final Continuous Numbering Version
+1. Numbering: 1 to 20 continuous across ALL sections (Speaking I~III + Unscramble).
+   - Speaking I: 1~5
+   - Speaking II: 6~10
+   - Speaking III: 11~15
+   - Unscramble: 16~20
+2. Evaluation: Added extra spacing between (A), (B), (C).
+3. Layout: Tight 5mm margins maintained for one-page fit.
 """
 
 try:
@@ -118,13 +122,13 @@ def distribute_questions(selected_patterns, target_count=5):
 def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, student_name="", student_date=""):
     buffer = BytesIO()
     
-    # [요청 반영] 위아래 여백 5mm로 복귀
+    # [설정] 여백 5mm 유지 (Tight Layout)
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        topMargin=5*mm,     # 5mm
-        bottomMargin=5*mm,  # 5mm
-        leftMargin=10*mm,   # 좌우 여백도 조금 더 확보 (10mm)
+        topMargin=5*mm,
+        bottomMargin=5*mm,
+        leftMargin=10*mm,
         rightMargin=10*mm
     )
     
@@ -139,10 +143,7 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     item_kr_style = ParagraphStyle('ItemKr', fontSize=10, fontName=KOREAN_FONT, leftIndent=0, spaceBefore=0, spaceAfter=0)
     line_style = ParagraphStyle('Line', fontSize=9, fontName='Helvetica', spaceAfter=0)
     
-    # 테이블 내부 텍스트
     cell_text_style = ParagraphStyle('CellText', fontSize=10, fontName=KOREAN_FONT, leading=11, alignment=TA_LEFT)
-    
-    # 평가란 텍스트 (안전하게 텍스트 모드)
     eval_text_style = ParagraphStyle('EvalText', fontSize=10, fontName='Helvetica-Bold', alignment=TA_CENTER, leading=11)
 
     # === [헤더 영역] ===
@@ -177,7 +178,6 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         for row in data_rows:
             table_data.append(row)
             
-        # 행 높이 24 (적당한 여유)
         t = Table(table_data, colWidths=col_widths, rowHeights=24)
         
         styles = [
@@ -204,56 +204,58 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         t.setStyle(TableStyle(styles))
         return t
     
-    # [안전 수정] (A)(B)(C) 텍스트 사용
-    eval_str = "( A )   ( B )   ( C )" 
+    # [수정] 평가란 간격 넓힘 (스페이스 추가)
+    eval_str = "( A )     ( B )     ( C )" 
     eval_para = Paragraph(eval_str, eval_text_style)
 
-    # === [Speaking I] ===
+    # === [Speaking I] (1~5번) ===
     story.append(Paragraph("<b>◈ Speaking I - Say the meaning</b>", section_style))
     story.append(Spacer(1, 1*mm))
     
     rows_s1 = []
-    for idx, question in enumerate(pattern_data['speaking1'][:5], 1):
+    for idx, question in enumerate(pattern_data['speaking1'][:5], 1): # Start 1
         text_para = Paragraph(f"{idx}. {question}", cell_text_style)
         rows_s1.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s1, include_header=True))
     
-    story.append(Spacer(1, 4*mm)) # 섹션 간격 (여백이 좁으므로 적당히 확보)
+    story.append(Spacer(1, 4*mm))
     
-    # === [Speaking II] ===
+    # === [Speaking II] (6~10번) ===
     story.append(Paragraph("<b>◈ Speaking II - Say in English</b>", section_style))
     story.append(Spacer(1, 1*mm))
     
     rows_s2 = []
-    for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 1):
-        text_para = Paragraph(f"{idx+5}. {korean}", cell_text_style)
+    for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 6): # Start 6
+        text_para = Paragraph(f"{idx}. {korean}", cell_text_style)
         rows_s2.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s2, include_header=False))
     
     story.append(Spacer(1, 4*mm))
     
-    # === [Speaking III] ===
+    # === [Speaking III] (11~15번) ===
     story.append(Paragraph("<b>◈ Speaking III - Talk with your teacher</b>", section_style))
     story.append(Spacer(1, 1*mm))
     
     rows_s3 = []
     for i in range(5):
+        current_num = i + 11 # 11~15
         pat_num_str = f"Pattern {i+1}"
         if i < len(selected_patterns):
             pat_num_str = f"Pattern {selected_patterns[i]['pattern_num']}"
-        text_para = Paragraph(f"{i+11}. {pat_num_str}", cell_text_style)
+        text_para = Paragraph(f"{current_num}. {pat_num_str}", cell_text_style)
         rows_s3.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s3, include_header=False))
     
     story.append(Spacer(1, 4*mm))
     
-    # === [Unscramble] ===
+    # === [Unscramble] (16~20번) ===
     story.append(Paragraph("<b>◈ Unscramble</b>", section_style))
     story.append(Spacer(1, 2*mm))
     
-    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 1):
+    # [수정] 16번부터 시작하도록 enumerate 수정
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): # Start 16
         story.append(Paragraph(f"{idx}. {korean} ({words})", item_kr_style))
-        story.append(Spacer(1, 5*mm)) # 쓰기 공간
+        story.append(Spacer(1, 5*mm)) 
         story.append(Paragraph("_" * 95, line_style))
         story.append(Spacer(1, 2*mm))
     
@@ -281,13 +283,13 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     
     story.append(Paragraph("<b>◈ Speaking II Answers</b>", section_style))
     story.append(Spacer(1, 3*mm))
-    for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 1):
+    for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 6): # 정답지도 6번부터
         story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
     story.append(Spacer(1, 10*mm))
     
     story.append(Paragraph("<b>◈ Unscramble Answers</b>", section_style))
     story.append(Spacer(1, 3*mm))
-    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 1):
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): # 정답지도 16번부터
         story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
 
     doc.build(story)
