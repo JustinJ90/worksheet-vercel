@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Final Version (Wide Spacing)
-1. Evaluation Spacing: Increased spacing between (A), (B), (C) significantly.
+Pattern Worksheet Generator - Modified Version
+1. Evaluation Spacing: Increased spacing between (A), (B), (C).
 2. Numbering: Continuous 1~20 numbering preserved.
 3. Layout: Optimized for A4 one-page fit.
+4. Data Logic Change: 'Speaking I' content is now fetched from 'Speaking II' row's Column F.
 """
 
 try:
@@ -75,8 +76,8 @@ def load_patterns_from_excel(filename):
         try:
             p_num = int(row[0])
             section = row[2]
-            content = row[4]
-            answer = row[5] if len(row) > 5 and row[5] else ""
+            content = row[4] # E열 (기본 내용)
+            answer = row[5] if len(row) > 5 and row[5] else "" # F열 (영어 정답 등)
             
             if p_num not in patterns:
                 patterns[p_num] = {
@@ -86,13 +87,26 @@ def load_patterns_from_excel(filename):
                     'speaking1': [], 'speaking2': [], 'unscramble': []
                 }
             
+            # --- [데이터 로직 수정됨] ---
             if section == 'Speaking I':
-                patterns[p_num]['speaking1'].append(content)
+                # Speaking 1 데이터는 이제 Speaking II 행에서 가져오므로 
+                # 여기서는 데이터를 추가하지 않고 패스합니다.
+                pass
+                
             elif section == 'Speaking II':
+                # 1. Speaking 2 섹션 (기존 유지): E열(content)과 F열(answer) 사용
                 patterns[p_num]['speaking2'].append((content, answer))
+                
+                # 2. Speaking 1 섹션 (새로운 출처): Speaking II 행의 F열(answer)을 가져와서 Speaking 1 문제로 추가
+                # 이렇게 하면 Speaking 1 목록에 영어 문장(F열)이 들어갑니다.
+                if answer: # 빈 값이 아닐 때만 추가
+                    patterns[p_num]['speaking1'].append(answer)
+                
             elif section == 'Unscramble':
                 scrambled = row[6].strip('()') if row[6] else ""
                 patterns[p_num]['unscramble'].append((content, scrambled, answer))
+            # ---------------------------
+            
         except:
             continue
             
@@ -201,7 +215,6 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         return t
     
     # [수정] 평가란 간격 대폭 확대
-    # &nbsp; 대신 공백 문자를 충분히 넣어서 간격을 벌립니다.
     eval_str = "( A )          ( B )          ( C )"
     eval_para = Paragraph(eval_str, eval_text_style)
 
@@ -210,7 +223,8 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     story.append(Spacer(1, 1*mm))
     
     rows_s1 = []
-    for idx, question in enumerate(pattern_data['speaking1'][:5], 1): # Start 1
+    # 데이터 소스가 변경되어 이제 여기에는 영어 문장(F열)이 들어옵니다.
+    for idx, question in enumerate(pattern_data['speaking1'][:5], 1): 
         text_para = Paragraph(f"{idx}. {question}", cell_text_style)
         rows_s1.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s1, include_header=True))
