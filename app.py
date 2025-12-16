@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Balanced Layout Version
-1. Evaluation Symbols: Changed to (A)(B)(C) for 100% compatibility.
-2. Spacing: Increased margins and gaps for a cleaner look.
-3. One Page Fit: carefully calculated to fill one A4 page.
+Pattern Worksheet Generator - Final "Tight" Version
+1. Margins: Reverted to 5mm (Top/Bottom) as requested.
+2. Layout: Maximized content space while keeping internal gaps for readability.
+3. Evaluation: Uses (A)(B)(C) text for 100% font safety.
 """
 
 try:
@@ -118,14 +118,14 @@ def distribute_questions(selected_patterns, target_count=5):
 def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, student_name="", student_date=""):
     buffer = BytesIO()
     
-    # [수정] 여백을 다시 조금 확보 (너무 좁지 않게)
+    # [요청 반영] 위아래 여백 5mm로 복귀
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        topMargin=12*mm,    # 7mm -> 12mm
-        bottomMargin=10*mm, # 5mm -> 10mm
-        leftMargin=15*mm,
-        rightMargin=15*mm
+        topMargin=5*mm,     # 5mm
+        bottomMargin=5*mm,  # 5mm
+        leftMargin=10*mm,   # 좌우 여백도 조금 더 확보 (10mm)
+        rightMargin=10*mm
     )
     
     story = []
@@ -134,19 +134,16 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     
     # [스타일 정의]
     title_style = ParagraphStyle('Title', fontSize=12, fontName='Helvetica-Bold', alignment=TA_CENTER, spaceAfter=2)
-    
-    # 섹션 제목 스타일 (간격 조정)
-    section_style = ParagraphStyle('Section', fontSize=11, fontName='Helvetica-Bold', spaceBefore=4, spaceAfter=2)
-    
+    section_style = ParagraphStyle('Section', fontSize=11, fontName='Helvetica-Bold', spaceBefore=3, spaceAfter=2)
     item_style = ParagraphStyle('Item', fontSize=10, fontName='Helvetica', leftIndent=0, spaceBefore=0, spaceAfter=0)
     item_kr_style = ParagraphStyle('ItemKr', fontSize=10, fontName=KOREAN_FONT, leftIndent=0, spaceBefore=0, spaceAfter=0)
     line_style = ParagraphStyle('Line', fontSize=9, fontName='Helvetica', spaceAfter=0)
     
     # 테이블 내부 텍스트
-    cell_text_style = ParagraphStyle('CellText', fontSize=10, fontName=KOREAN_FONT, leading=12, alignment=TA_LEFT)
+    cell_text_style = ParagraphStyle('CellText', fontSize=10, fontName=KOREAN_FONT, leading=11, alignment=TA_LEFT)
     
-    # 평가란 텍스트 스타일 (중앙 정렬)
-    eval_text_style = ParagraphStyle('EvalText', fontSize=10, fontName='Helvetica-Bold', alignment=TA_CENTER, leading=12)
+    # 평가란 텍스트 (안전하게 텍스트 모드)
+    eval_text_style = ParagraphStyle('EvalText', fontSize=10, fontName='Helvetica-Bold', alignment=TA_CENTER, leading=11)
 
     # === [헤더 영역] ===
     story.append(Paragraph("<b>Weekly Test</b>", title_style))
@@ -159,19 +156,19 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         Paragraph(display_name, ParagraphStyle('Name', fontSize=11, fontName=KOREAN_FONT)), 
         Paragraph(display_date, ParagraphStyle('Date', fontSize=11, fontName=KOREAN_FONT, alignment=TA_RIGHT))
     ]]
-    name_date_table = Table(name_date_data, colWidths=[120*mm, 50*mm])
+    name_date_table = Table(name_date_data, colWidths=[130*mm, 50*mm])
     name_date_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (0, 0), (0, 0), 'LEFT'),
         ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
     ]))
     story.append(name_date_table)
-    story.append(Spacer(1, 4*mm)) # 헤더와 첫 섹션 사이 간격
+    story.append(Spacer(1, 3*mm))
     
     # === [테이블 생성 함수] ===
     def create_section_table(data_rows, include_header=True):
-        col_widths = [105*mm, 45*mm, 30*mm]
+        col_widths = [115*mm, 45*mm, 30*mm]
         
         table_data = []
         if include_header:
@@ -180,7 +177,7 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         for row in data_rows:
             table_data.append(row)
             
-        # [수정] 행 높이를 22 -> 24로 늘려서 여유 확보
+        # 행 높이 24 (적당한 여유)
         t = Table(table_data, colWidths=col_widths, rowHeights=24)
         
         styles = [
@@ -207,13 +204,13 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         t.setStyle(TableStyle(styles))
         return t
     
-    # [수정] 평가 기호: 폰트 이슈 방지를 위해 텍스트 (A)(B)(C)로 변경
+    # [안전 수정] (A)(B)(C) 텍스트 사용
     eval_str = "( A )   ( B )   ( C )" 
     eval_para = Paragraph(eval_str, eval_text_style)
 
     # === [Speaking I] ===
     story.append(Paragraph("<b>◈ Speaking I - Say the meaning</b>", section_style))
-    story.append(Spacer(1, 1*mm)) # 제목과 표 사이 미세 공백
+    story.append(Spacer(1, 1*mm))
     
     rows_s1 = []
     for idx, question in enumerate(pattern_data['speaking1'][:5], 1):
@@ -221,7 +218,7 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         rows_s1.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s1, include_header=True))
     
-    story.append(Spacer(1, 5*mm)) # 섹션 사이 공백 늘림 (시원하게)
+    story.append(Spacer(1, 4*mm)) # 섹션 간격 (여백이 좁으므로 적당히 확보)
     
     # === [Speaking II] ===
     story.append(Paragraph("<b>◈ Speaking II - Say in English</b>", section_style))
@@ -233,7 +230,7 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         rows_s2.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s2, include_header=False))
     
-    story.append(Spacer(1, 5*mm)) # 섹션 사이 공백 늘림
+    story.append(Spacer(1, 4*mm))
     
     # === [Speaking III] ===
     story.append(Paragraph("<b>◈ Speaking III - Talk with your teacher</b>", section_style))
@@ -248,19 +245,19 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         rows_s3.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s3, include_header=False))
     
-    story.append(Spacer(1, 5*mm)) # 섹션 사이 공백 늘림
+    story.append(Spacer(1, 4*mm))
     
     # === [Unscramble] ===
     story.append(Paragraph("<b>◈ Unscramble</b>", section_style))
-    story.append(Spacer(1, 2*mm)) # 제목과 문제 사이 공백
+    story.append(Spacer(1, 2*mm))
     
     for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 1):
         story.append(Paragraph(f"{idx}. {korean} ({words})", item_kr_style))
-        story.append(Spacer(1, 6*mm))  # 쓰기 공간 적당히 확보
-        story.append(Paragraph("_" * 90, line_style))
-        story.append(Spacer(1, 2*mm))  # 문제 간 간격
+        story.append(Spacer(1, 5*mm)) # 쓰기 공간
+        story.append(Paragraph("_" * 95, line_style))
+        story.append(Spacer(1, 2*mm))
     
-    story.append(Spacer(1, 4*mm))
+    story.append(Spacer(1, 3*mm))
     
     # === [Footer] ===
     footer_data = [[
