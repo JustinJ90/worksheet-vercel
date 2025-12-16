@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Final Continuous Numbering Version
-1. Numbering: 1 to 20 continuous across ALL sections (Speaking I~III + Unscramble).
-   - Speaking I: 1~5
-   - Speaking II: 6~10
-   - Speaking III: 11~15
-   - Unscramble: 16~20
-2. Evaluation: Added extra spacing between (A), (B), (C).
-3. Layout: Tight 5mm margins maintained for one-page fit.
+Pattern Worksheet Generator - Final Version (Wide Spacing)
+1. Evaluation Spacing: Increased spacing between (A), (B), (C) significantly.
+2. Numbering: Continuous 1~20 numbering preserved.
+3. Layout: Optimized for A4 one-page fit.
 """
 
 try:
@@ -204,8 +200,9 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         t.setStyle(TableStyle(styles))
         return t
     
-    # [수정] 평가란 간격 넓힘 (스페이스 추가)
-    eval_str = "( A )     ( B )     ( C )" 
+    # [수정] 평가란 간격 대폭 확대
+    # &nbsp; 대신 공백 문자를 충분히 넣어서 간격을 벌립니다.
+    eval_str = "( A )          ( B )          ( C )"
     eval_para = Paragraph(eval_str, eval_text_style)
 
     # === [Speaking I] (1~5번) ===
@@ -252,7 +249,7 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     story.append(Paragraph("<b>◈ Unscramble</b>", section_style))
     story.append(Spacer(1, 2*mm))
     
-    # [수정] 16번부터 시작하도록 enumerate 수정
+    # 16번부터 시작
     for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): # Start 16
         story.append(Paragraph(f"{idx}. {korean} ({words})", item_kr_style))
         story.append(Spacer(1, 5*mm)) 
