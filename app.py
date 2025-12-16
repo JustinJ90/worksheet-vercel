@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Vercel Final Fix (Font Corrected)
-- Changed Speaking I font style to support Korean characters
-- Solves "Black Square" issue when Korean is used in Speaking I
+Pattern Worksheet Generator - Hybrid Version
+- Header & Footer & Unscramble: Identical to original
+- Speaking I, II, III: Changed to Table Layout (Pattern | Evaluation | Remark)
 """
 
 try:
@@ -12,10 +12,11 @@ try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    from reportlab.lib import colors  # 표 테두리 색상용 추가
     import os
     import glob
     import random
@@ -116,6 +117,7 @@ def distribute_questions(selected_patterns, target_count=5):
 def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, student_name="", student_date=""):
     buffer = BytesIO()
     
+    # [기존 설정 유지] 마진 10mm
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
@@ -129,13 +131,17 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     p_nums = ", ".join([str(p['pattern_num']) for p in selected_patterns])
     clean_book_title = book_title.replace('.xlsx', '')
     
+    # [스타일 정의]
     title_style = ParagraphStyle('Title', fontSize=12, fontName='Helvetica-Bold', alignment=TA_CENTER, spaceAfter=5)
     section_style = ParagraphStyle('Section', fontSize=11, fontName='Helvetica-Bold', spaceBefore=0, spaceAfter=0)
     item_style = ParagraphStyle('Item', fontSize=10, fontName='Helvetica', leftIndent=0, spaceBefore=2, spaceAfter=2)
     item_kr_style = ParagraphStyle('ItemKr', fontSize=10, fontName=KOREAN_FONT, leftIndent=0, spaceBefore=2, spaceAfter=2)
     line_style = ParagraphStyle('Line', fontSize=10, fontName='Helvetica', spaceAfter=0)
     
-    # === PAGE 1 ===
+    # 테이블 내부 텍스트 스타일 (새로 추가)
+    cell_text_style = ParagraphStyle('CellText', fontSize=10, fontName=KOREAN_FONT, leading=12, alignment=TA_LEFT)
+
+    # === [기존 헤더 유지] ===
     story.append(Paragraph("<b>Weekly Test</b>", title_style))
     story.append(Paragraph(f"<b>{clean_book_title} - Patterns: {p_nums}</b>", title_style))
     
@@ -155,29 +161,77 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     story.append(name_date_table)
     story.append(Spacer(1, 4*mm))
     
-    # Speaking I [수정됨: item_style -> item_kr_style]
-    story.append(Paragraph("<b>◈ Speaking I - Answer the questions</b>", section_style))
+    # === [표 생성 헬퍼 함수] (새로 추가) ===
+    def create_section_table(data_rows):
+        # 열 너비: 전체 180mm (좌우 마진 15mm씩 제외한 A4 폭)
+        col_widths = [105*mm, 45*mm, 30*mm]
+        
+        # 헤더
+        table_data = [['pattern', 'evaluation', 'remark']]
+        # 데이터 행 추가
+        for row in data_rows:
+            table_data.append(row)
+            
+        t = Table(table_data, colWidths=col_widths, rowHeights=28) # 높이 약간 여유 있게
+        t.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 1, colors.black),           # 전체 테두리
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),       # 헤더 폰트
+            ('ALIGN', (0,0), (-1,0), 'CENTER'),                  # 헤더 가운데 정렬
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),                # 전체 수직 가운데 정렬
+            ('LINEBELOW', (0,0), (-1,0), 1.5, colors.black),     # 헤더 아래 굵은 선
+            ('FONTNAME', (0,1), (-1,-1), KOREAN_FONT),           # 내용 한글 폰트
+            ('ALIGN', (0,1), (0,-1), 'LEFT'),                    # 1열(패턴) 왼쪽 정렬
+            ('LEFTPADDING', (0,1), (0,-1), 8),                   # 1열 텍스트 여백
+            ('ALIGN', (1,1), (-1,-1), 'CENTER'),                 # 2,3열 가운데 정렬
+            ('FONTSIZE', (1,1), (1,-1), 11),                     # 평가 원문자 크기
+        ]))
+        return t
+    
+    eval_str = "Ⓐ   Ⓑ   Ⓒ"
+
+    # === [Speaking I - 표 적용] ===
+    story.append(Paragraph("<b>◈ Speaking I - Say the meaning</b>", section_style)) # 기존 제목 텍스트 약간 수정됨 (image style)
     story.append(Spacer(1, 2*mm))
+    
+    rows_s1 = []
     for idx, question in enumerate(pattern_data['speaking1'][:5], 1):
-        # 여기가 핵심 수정입니다! 한글 폰트 스타일을 적용합니다.
-        story.append(Paragraph(f"{idx}. {question}", item_kr_style))
+        text_para = Paragraph(f"{idx}. {question}", cell_text_style)
+        rows_s1.append([text_para, eval_str, ""])
+    story.append(create_section_table(rows_s1))
+    
     story.append(Spacer(1, 4*mm))
     
-    # Speaking II
+    # === [Speaking II - 표 적용] ===
     story.append(Paragraph("<b>◈ Speaking II - Say in English</b>", section_style))
     story.append(Spacer(1, 2*mm))
+    
+    rows_s2 = []
     for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 1):
-        story.append(Paragraph(f"{idx}. {korean}", item_kr_style))
+        text_para = Paragraph(f"{idx+5}. {korean}", cell_text_style)
+        rows_s2.append([text_para, eval_str, ""])
+    story.append(create_section_table(rows_s2))
+    
     story.append(Spacer(1, 4*mm))
     
-    # Speaking III
-    story.append(Paragraph("<b>◈ Speaking III - With your teacher</b>", section_style))
+    # === [Speaking III - 표 적용] ===
+    story.append(Paragraph("<b>◈ Speaking III - Talk with your teacher</b>", section_style))
     story.append(Spacer(1, 2*mm))
-    for idx in range(1, 6):
-        story.append(Paragraph(f"{idx}. Pattern {idx}", item_style))
+    
+    rows_s3 = []
+    for i in range(5):
+        # 패턴 번호 로직: 실제 선택된 패턴 번호를 매칭하거나, 단순히 1~5 순차 표시
+        # 여기서는 단순화를 위해 루프 인덱스 사용하되, 필요시 수정 가능
+        pat_num_str = f"Pattern {i+1}"
+        if i < len(selected_patterns):
+            pat_num_str = f"Pattern {selected_patterns[i]['pattern_num']}"
+            
+        text_para = Paragraph(f"{i+11}. {pat_num_str}", cell_text_style)
+        rows_s3.append([text_para, eval_str, ""])
+    story.append(create_section_table(rows_s3))
+    
     story.append(Spacer(1, 4*mm))
     
-    # Unscramble
+    # === [Unscramble - 기존 방식 그대로 유지] ===
     story.append(Paragraph("<b>◈ Unscramble</b>", section_style))
     story.append(Spacer(1, 2*mm))
     for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 1):
@@ -187,6 +241,8 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         story.append(Spacer(1, 3*mm))
     
     story.append(Spacer(1, 5*mm))
+    
+    # === [Footer - 기존 방식 그대로 유지] ===
     footer_data = [[
         Paragraph("<b>GRADE:</b>", ParagraphStyle('Footer', fontSize=12, fontName='Helvetica-Bold')),
         "",
@@ -200,7 +256,7 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     ]))
     story.append(footer_table)
     
-    # === PAGE 2 ===
+    # === PAGE 2 (Answer Key) - 기존 방식 그대로 유지 ===
     story.append(PageBreak())
     story.append(Paragraph("<b>Teacher's Guide (Answer Key)</b>", title_style))
     story.append(Paragraph(f"<b>{clean_book_title} - Patterns: {p_nums}</b>", title_style))
