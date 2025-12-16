@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Modified Version
+Pattern Worksheet Generator - Final Modified Version
 1. Evaluation Spacing: Increased spacing between (A), (B), (C).
 2. Numbering: Continuous 1~20 numbering preserved.
 3. Layout: Optimized for A4 one-page fit.
-4. Data Logic Change: 'Speaking I' content is now fetched from 'Speaking II' row's Column F.
+4. Data Logic: 'Speaking I' content fetched from 'Speaking II' row's Column F.
+5. Speaking III Display: Fixed to show 'Pattern 1' through 'Pattern 5' sequentially.
 """
 
 try:
@@ -87,25 +88,22 @@ def load_patterns_from_excel(filename):
                     'speaking1': [], 'speaking2': [], 'unscramble': []
                 }
             
-            # --- [데이터 로직 수정됨] ---
+            # --- [데이터 로직 유지: Speaking I은 Speaking II의 F열 사용] ---
             if section == 'Speaking I':
-                # Speaking 1 데이터는 이제 Speaking II 행에서 가져오므로 
-                # 여기서는 데이터를 추가하지 않고 패스합니다.
-                pass
+                pass # 기존 Speaking I 데이터는 무시
                 
             elif section == 'Speaking II':
-                # 1. Speaking 2 섹션 (기존 유지): E열(content)과 F열(answer) 사용
+                # 1. Speaking 2 섹션 (기존 유지)
                 patterns[p_num]['speaking2'].append((content, answer))
                 
-                # 2. Speaking 1 섹션 (새로운 출처): Speaking II 행의 F열(answer)을 가져와서 Speaking 1 문제로 추가
-                # 이렇게 하면 Speaking 1 목록에 영어 문장(F열)이 들어갑니다.
-                if answer: # 빈 값이 아닐 때만 추가
+                # 2. Speaking 1 섹션 (Speaking II의 F열 값을 사용)
+                if answer: 
                     patterns[p_num]['speaking1'].append(answer)
                 
             elif section == 'Unscramble':
                 scrambled = row[6].strip('()') if row[6] else ""
                 patterns[p_num]['unscramble'].append((content, scrambled, answer))
-            # ---------------------------
+            # ---------------------------------------------------------
             
         except:
             continue
@@ -132,7 +130,7 @@ def distribute_questions(selected_patterns, target_count=5):
 def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, student_name="", student_date=""):
     buffer = BytesIO()
     
-    # [설정] 여백 5mm 유지 (Tight Layout)
+    # [설정] 여백 5mm 유지
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
@@ -214,7 +212,7 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         t.setStyle(TableStyle(styles))
         return t
     
-    # [수정] 평가란 간격 대폭 확대
+    # 평가란
     eval_str = "( A )          ( B )          ( C )"
     eval_para = Paragraph(eval_str, eval_text_style)
 
@@ -223,7 +221,6 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     story.append(Spacer(1, 1*mm))
     
     rows_s1 = []
-    # 데이터 소스가 변경되어 이제 여기에는 영어 문장(F열)이 들어옵니다.
     for idx, question in enumerate(pattern_data['speaking1'][:5], 1): 
         text_para = Paragraph(f"{idx}. {question}", cell_text_style)
         rows_s1.append([text_para, eval_para, ""])
@@ -244,15 +241,17 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     story.append(Spacer(1, 4*mm))
     
     # === [Speaking III] (11~15번) ===
+    # [수정됨] 실제 패턴 번호와 상관없이 Pattern 1~5로 고정 출력
     story.append(Paragraph("<b>◈ Speaking III - Talk with your teacher</b>", section_style))
     story.append(Spacer(1, 1*mm))
     
     rows_s3 = []
     for i in range(5):
-        current_num = i + 11 # 11~15
+        current_num = i + 11 # 11, 12, 13, 14, 15
+        
+        # 무조건 Pattern 1, Pattern 2, ... Pattern 5로 표시
         pat_num_str = f"Pattern {i+1}"
-        if i < len(selected_patterns):
-            pat_num_str = f"Pattern {selected_patterns[i]['pattern_num']}"
+        
         text_para = Paragraph(f"{current_num}. {pat_num_str}", cell_text_style)
         rows_s3.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s3, include_header=False))
@@ -263,8 +262,7 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     story.append(Paragraph("<b>◈ Unscramble</b>", section_style))
     story.append(Spacer(1, 2*mm))
     
-    # 16번부터 시작
-    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): # Start 16
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): 
         story.append(Paragraph(f"{idx}. {korean} ({words})", item_kr_style))
         story.append(Spacer(1, 5*mm)) 
         story.append(Paragraph("_" * 95, line_style))
@@ -294,13 +292,13 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     
     story.append(Paragraph("<b>◈ Speaking II Answers</b>", section_style))
     story.append(Spacer(1, 3*mm))
-    for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 6): # 정답지도 6번부터
+    for idx, (korean, answer) in enumerate(pattern_data['speaking2'][:5], 6): 
         story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
     story.append(Spacer(1, 10*mm))
     
     story.append(Paragraph("<b>◈ Unscramble Answers</b>", section_style))
     story.append(Spacer(1, 3*mm))
-    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): # 정답지도 16번부터
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): 
         story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
 
     doc.build(story)
