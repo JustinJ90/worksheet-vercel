@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Final Modified Version
+Pattern Worksheet Generator - Final Version (Dynamic Numbering)
 1. Evaluation Spacing: Increased spacing between (A), (B), (C).
-2. Numbering: Continuous 1~20 numbering preserved.
+2. Numbering: Continuous numbering (Spk1->Spk2->Spk3->Unscramble).
 3. Layout: Optimized for A4 one-page fit.
 4. Data Logic: 'Speaking I' content fetched from 'Speaking II' row's Column F.
-5. Speaking III Display: Fixed to show 'Pattern 1' through 'Pattern 5' sequentially.
+5. Speaking III: Dynamic count based on selection, displayed as "Pattern", numbering flows to Unscramble.
 """
 
 try:
@@ -77,8 +77,8 @@ def load_patterns_from_excel(filename):
         try:
             p_num = int(row[0])
             section = row[2]
-            content = row[4] # E열 (기본 내용)
-            answer = row[5] if len(row) > 5 and row[5] else "" # F열 (영어 정답 등)
+            content = row[4] 
+            answer = row[5] if len(row) > 5 and row[5] else "" 
             
             if p_num not in patterns:
                 patterns[p_num] = {
@@ -88,9 +88,9 @@ def load_patterns_from_excel(filename):
                     'speaking1': [], 'speaking2': [], 'unscramble': []
                 }
             
-            # --- [데이터 로직 유지: Speaking I은 Speaking II의 F열 사용] ---
+            # --- [데이터 로직 유지] ---
             if section == 'Speaking I':
-                pass # 기존 Speaking I 데이터는 무시
+                pass 
                 
             elif section == 'Speaking II':
                 # 1. Speaking 2 섹션 (기존 유지)
@@ -103,7 +103,7 @@ def load_patterns_from_excel(filename):
             elif section == 'Unscramble':
                 scrambled = row[6].strip('()') if row[6] else ""
                 patterns[p_num]['unscramble'].append((content, scrambled, answer))
-            # ---------------------------------------------------------
+            # ------------------------
             
         except:
             continue
@@ -130,7 +130,6 @@ def distribute_questions(selected_patterns, target_count=5):
 def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, student_name="", student_date=""):
     buffer = BytesIO()
     
-    # [설정] 여백 5mm 유지
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
@@ -240,29 +239,31 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     
     story.append(Spacer(1, 4*mm))
     
-    # === [Speaking III] (11~15번) ===
-    # [수정됨] 실제 패턴 번호와 상관없이 Pattern 1~5로 고정 출력
+    # === [Speaking III] (11번 ~ ) ===
+    # [수정됨] 선택한 패턴 수만큼만 생성 + "Pattern" 텍스트만 표시
     story.append(Paragraph("<b>◈ Speaking III - Talk with your teacher</b>", section_style))
     story.append(Spacer(1, 1*mm))
     
     rows_s3 = []
-    for i in range(5):
-        current_num = i + 11 # 11, 12, 13, 14, 15
+    # 선택된 패턴 개수만큼 반복
+    for i in range(len(selected_patterns)):
+        current_num = i + 11 
         
-        # 무조건 Pattern 1, Pattern 2, ... Pattern 5로 표시
-        pat_num_str = f"Pattern {i+1}"
-        
-        text_para = Paragraph(f"{current_num}. {pat_num_str}", cell_text_style)
+        # 문항 내용은 심플하게 "Pattern"
+        text_para = Paragraph(f"{current_num}. Pattern", cell_text_style)
         rows_s3.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s3, include_header=False))
     
     story.append(Spacer(1, 4*mm))
     
-    # === [Unscramble] (16~20번) ===
+    # === [Unscramble] (Speaking III 다음 번호부터 시작) ===
+    # [수정됨] Unscramble 시작 번호 계산
+    unscramble_start_num = 11 + len(selected_patterns)
+
     story.append(Paragraph("<b>◈ Unscramble</b>", section_style))
     story.append(Spacer(1, 2*mm))
     
-    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): 
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], unscramble_start_num): 
         story.append(Paragraph(f"{idx}. {korean} ({words})", item_kr_style))
         story.append(Spacer(1, 5*mm)) 
         story.append(Paragraph("_" * 95, line_style))
@@ -296,9 +297,10 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
     story.append(Spacer(1, 10*mm))
     
+    # [수정됨] 정답지 넘버링도 워크시트와 동일하게 맞춤
     story.append(Paragraph("<b>◈ Unscramble Answers</b>", section_style))
     story.append(Spacer(1, 3*mm))
-    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): 
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], unscramble_start_num): 
         story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
 
     doc.build(story)
