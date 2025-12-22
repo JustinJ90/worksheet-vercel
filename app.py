@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pattern Worksheet Generator - Final Version (Dynamic Numbering)
-1. Evaluation Spacing: Increased spacing between (A), (B), (C).
-2. Numbering: Continuous numbering (Spk1->Spk2->Spk3->Unscramble).
-3. Layout: Optimized for A4 one-page fit.
-4. Data Logic: 'Speaking I' content fetched from 'Speaking II' row's Column F.
-5. Speaking III: Dynamic count based on selection, displayed as "Pattern", numbering flows to Unscramble.
+Pattern Worksheet Generator - Final Version (Fixed 20 Questions)
+1. Structure: Spk I (5) + Spk II (5) + Spk III (5) + Unscramble (5) = Total 20.
+2. Speaking III: Fixed 5 questions (11~15), displayed as "Pattern".
+3. Data Logic: 'Speaking I' content fetched from 'Speaking II' row's Column F.
+4. Numbering: Continuous 1~20.
 """
 
 try:
@@ -90,7 +89,7 @@ def load_patterns_from_excel(filename):
             
             # --- [데이터 로직 유지] ---
             if section == 'Speaking I':
-                pass 
+                pass # 기존 데이터 무시
                 
             elif section == 'Speaking II':
                 # 1. Speaking 2 섹션 (기존 유지)
@@ -239,31 +238,26 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
     
     story.append(Spacer(1, 4*mm))
     
-    # === [Speaking III] (11번 ~ ) ===
-    # [수정됨] 선택한 패턴 수만큼만 생성 + "Pattern" 텍스트만 표시
+    # === [Speaking III] (11번 ~ 15번) ===
+    # [수정됨] 문항 수 5개로 고정 + "Pattern" 텍스트 고정
     story.append(Paragraph("<b>◈ Speaking III - Talk with your teacher</b>", section_style))
     story.append(Spacer(1, 1*mm))
     
     rows_s3 = []
-    # 선택된 패턴 개수만큼 반복
-    for i in range(len(selected_patterns)):
+    for i in range(5): # 항상 5개 생성
         current_num = i + 11 
-        
-        # 문항 내용은 심플하게 "Pattern"
         text_para = Paragraph(f"{current_num}. Pattern", cell_text_style)
         rows_s3.append([text_para, eval_para, ""])
     story.append(create_section_table(rows_s3, include_header=False))
     
     story.append(Spacer(1, 4*mm))
     
-    # === [Unscramble] (Speaking III 다음 번호부터 시작) ===
-    # [수정됨] Unscramble 시작 번호 계산
-    unscramble_start_num = 11 + len(selected_patterns)
-
+    # === [Unscramble] (16번 ~ 20번) ===
     story.append(Paragraph("<b>◈ Unscramble</b>", section_style))
     story.append(Spacer(1, 2*mm))
     
-    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], unscramble_start_num): 
+    # [수정됨] 항상 16번부터 시작
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): 
         story.append(Paragraph(f"{idx}. {korean} ({words})", item_kr_style))
         story.append(Spacer(1, 5*mm)) 
         story.append(Paragraph("_" * 95, line_style))
@@ -297,10 +291,10 @@ def create_worksheet_in_memory(pattern_data, selected_patterns, book_title, stud
         story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
     story.append(Spacer(1, 10*mm))
     
-    # [수정됨] 정답지 넘버링도 워크시트와 동일하게 맞춤
     story.append(Paragraph("<b>◈ Unscramble Answers</b>", section_style))
     story.append(Spacer(1, 3*mm))
-    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], unscramble_start_num): 
+    # [수정됨] 정답지도 항상 16번부터 시작
+    for idx, (korean, words, answer) in enumerate(pattern_data['unscramble'][:5], 16): 
         story.append(Paragraph(f"<b>{idx}.</b> {answer}", item_style))
 
     doc.build(story)
